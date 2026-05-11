@@ -1,18 +1,16 @@
 package rich.screens.hud;
 
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.state.LivingEntityRenderState;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.Identifier;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import rich.client.draggables.AbstractHudElement;
 import rich.modules.impl.combat.Aura;
 import rich.util.ColorUtil;
 import rich.util.network.Network;
 import rich.util.render.Render2D;
 import rich.util.render.font.Fonts;
-import rich.util.string.PlayerInteractionHelper;
 import rich.util.timer.StopWatch;
 
 import java.awt.*;
@@ -30,7 +28,7 @@ public class TargetHud extends AbstractHudElement {
     private long startTime = System.currentTimeMillis();
 
     public TargetHud() {
-        super("TargetHud", 10, 80, 112, 40, true);
+        super("TargetHud", 10, 80, 150, 55, true);
     }
 
     @Override
@@ -96,13 +94,13 @@ public class TargetHud extends AbstractHudElement {
         float x = getX();
         float y = getY();
 
-        setWidth(112);
-        setHeight(40);
+        setWidth(150);
+        setHeight(55);
 
         float scaleAlpha = scaleAnimation.getOutput().floatValue();
 
         drawBackground(x, y, scaleAlpha);
-        drawFace(x, y, scaleAlpha);
+        drawEntityModel(context, x, y, scaleAlpha);
         drawContent(x, y, scaleAlpha, deltaTime);
     }
 
@@ -124,55 +122,38 @@ public class TargetHud extends AbstractHudElement {
         Render2D.blur(x + 2, y + 2, 1, 1, 0f, 7, blurTint);
     }
 
-    private void drawFace(float x, float y, float alpha) {
-        EntityRenderer<? super LivingEntity, ?> baseRenderer = mc.getEntityRenderDispatcher().getRenderer(lastTarget);
-        if (!(baseRenderer instanceof LivingEntityRenderer<?, ?, ?>)) {
-            return;
-        }
+    private void drawEntityModel(DrawContext context, float x, float y, float alpha) {
+        if (lastTarget == null) return;
 
-        @SuppressWarnings("unchecked")
-        LivingEntityRenderer<LivingEntity, LivingEntityRenderState, ?> renderer =
-                (LivingEntityRenderer<LivingEntity, LivingEntityRenderState, ?>) baseRenderer;
+        int modelX1 = (int) (x + 5);
+        int modelY1 = (int) (y + 3);
+        int modelX2 = (int) (x + 42);
+        int modelY2 = (int) (y + getHeight() - 3);
 
-        LivingEntityRenderState state = renderer.getAndUpdateRenderState(lastTarget, lastTickDelta);
-        Identifier textureLocation = renderer.getTexture(state);
+        int entitySize = 24;
 
-        float faceSize = 24;
-        float faceX = x + 9;
-        float faceY = y + 8;
+        context.enableScissor(modelX1, modelY1, modelX2, modelY2);
 
-        float hurtPercent = lastTarget.hurtTime > 0 ? lastTarget.hurtTime / 10.0f : 0.0f;
-        int r = 255;
-        int g = (int) (255 * (1.0f - hurtPercent));
-        int b = (int) (255 * (1.0f - hurtPercent));
-        int color = new Color(r, g, b, (int) (255 * alpha)).getRGB();
+        Quaternionf entityRotation = new Quaternionf().rotationY((float) Math.toRadians(195));
+        Quaternionf tilt = new Quaternionf().rotationX((float) Math.toRadians(-5));
 
-        float u0 = 8f / 64f;
-        float v0 = 8f / 64f;
-        float u1 = 16f / 64f;
-        float v1 = 16f / 64f;
+        InventoryScreen.drawEntity(
+                context,
+                modelX1, modelY1, modelX2, modelY2,
+                entitySize,
+                0.0625f,
+                new Vector3f(0, 0, 0),
+                entityRotation,
+                tilt,
+                lastTarget
+        );
 
-        Render2D.texture(textureLocation, faceX, faceY, faceSize, faceSize,
-                u0, v0, u1, v1, color, 0, 4f);
-
-        float hatScale = 1.1f;
-        float hatSize = faceSize * hatScale;
-        float hatOffset = (hatSize - faceSize) / 2f;
-
-        float hatU0 = 40f / 64f;
-        float hatV0 = 8f / 64f;
-        float hatU1 = 48f / 64f;
-        float hatV1 = 16f / 64f;
-
-        Render2D.texture(textureLocation, faceX - hatOffset, faceY - hatOffset, hatSize, hatSize,
-                hatU0, hatV0, hatU1, hatV1, color, 0f, 4f);
+        context.disableScissor();
     }
 
     private void drawContent(float x, float y, float alpha, float deltaTime) {
-        float faceSize = 24;
-        float faceX = x + 9;
-        float contentX = faceX + faceSize + 6;
-        float nameY = y + 13;
+        float contentX = x + 46;
+        float nameY = y + 10;
 
         float hp = getHealth(lastTarget);
         float maxHp = lastTarget.getMaxHealth();
@@ -190,15 +171,23 @@ public class TargetHud extends AbstractHudElement {
         float snappedHealth = snapToStep(displayedHealth, 0.25f);
 
         String hpStr = getHealthString(snappedHealth);
-
         String name = lastTarget.getName().getString();
-        float hpWidth = Fonts.BOLD.getWidth(hpStr, 5.5f);
 
         Fonts.BOLD.draw(name, contentX, nameY, 5.5f,
                 new Color(255, 255, 255, (int) (255 * alpha)).getRGB());
 
-        int hpColor = new Color(215, 215, 215, (int) (255 * alpha)).getRGB();
-        Fonts.BOLD.draw(hpStr, x + getWidth() - 10 - hpWidth, nameY, 5.5f, hpColor);
+        float infoY = nameY + 10;
+        String hpInfo = "HP: " + hpStr;
+
+        float dist = 0;
+        if (mc.player != null && lastTarget != mc.player) {
+            dist = mc.player.distanceTo(lastTarget);
+        }
+        String distInfo = "Dist: " + String.format("%.0f", dist);
+        String infoText = hpInfo + " | " + distInfo;
+
+        Fonts.BOLD.draw(infoText, contentX, infoY, 5f,
+                new Color(215, 215, 215, (int) (255 * alpha)).getRGB());
 
         float targetHealth;
         if (isInvisible) {
@@ -222,8 +211,8 @@ public class TargetHud extends AbstractHudElement {
         absorptionAnimation = lerp(absorptionAnimation, targetAbsorption, deltaTime, 3f);
 
         float barX = contentX;
-        float barY = nameY + 12f;
-        float barWidth = 64;
+        float barY = infoY + 12f;
+        float barWidth = getWidth() - (contentX - x) - 10;
         float barHeight = 4;
         float barRadius = 2;
 
