@@ -2,7 +2,9 @@ package rich.screens.hud;
 
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
 import rich.client.draggables.AbstractHudElement;
 import rich.modules.impl.combat.Aura;
 import rich.util.ColorUtil;
@@ -26,7 +28,7 @@ public class TargetHud extends AbstractHudElement {
     private long startTime = System.currentTimeMillis();
 
     public TargetHud() {
-        super("TargetHud", 10, 80, 150, 55, true);
+        super("TargetHud", 10, 80, 150, 68, true);
     }
 
     @Override
@@ -93,13 +95,14 @@ public class TargetHud extends AbstractHudElement {
         float y = getY();
 
         setWidth(150);
-        setHeight(55);
+        setHeight(68);
 
         float scaleAlpha = scaleAnimation.getOutput().floatValue();
 
         drawBackground(x, y, scaleAlpha);
         drawEntityModel(context, x, y, scaleAlpha);
         drawContent(x, y, scaleAlpha, deltaTime);
+        drawItems(context, x, y, scaleAlpha);
     }
 
     private void drawBackground(float x, float y, float alpha) {
@@ -145,6 +148,39 @@ public class TargetHud extends AbstractHudElement {
         );
 
         context.disableScissor();
+    }
+
+    private void drawItems(DrawContext context, float x, float y, float alpha) {
+        if (lastTarget == null) return;
+
+        ItemStack mainHand = lastTarget.getMainHandStack();
+        ItemStack offHand = lastTarget.getOffHandStack();
+        ItemStack helmet = lastTarget.getEquippedStack(EquipmentSlot.HEAD);
+        ItemStack chestplate = lastTarget.getEquippedStack(EquipmentSlot.CHEST);
+        ItemStack leggings = lastTarget.getEquippedStack(EquipmentSlot.LEGS);
+        ItemStack boots = lastTarget.getEquippedStack(EquipmentSlot.FEET);
+
+        ItemStack[] items = { mainHand, offHand, helmet, chestplate, leggings, boots };
+
+        float itemScale = 0.625f;
+        int itemSize = (int) (16 * itemScale);
+        int gap = 2;
+        float startX = x + 46;
+        float itemY = y + getHeight() - itemSize - 5;
+
+        context.getMatrices().push();
+        context.getMatrices().translate(startX, itemY, 0);
+        context.getMatrices().scale(itemScale, itemScale, 1f);
+
+        int drawX = 0;
+        for (ItemStack stack : items) {
+            if (stack != null && !stack.isEmpty()) {
+                context.drawItem(stack, drawX, 0);
+            }
+            drawX += 16 + (int) (gap / itemScale);
+        }
+
+        context.getMatrices().pop();
     }
 
     private void drawContent(float x, float y, float alpha, float deltaTime) {
