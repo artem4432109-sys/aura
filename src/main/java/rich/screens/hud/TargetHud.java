@@ -185,7 +185,7 @@ public class TargetHud extends AbstractHudElement {
 
     private void drawContent(float x, float y, float alpha, float deltaTime) {
         float contentX = x + 46;
-        float nameY = y + 10;
+        float nameY = y + 8;
 
         float hp = getHealth(lastTarget);
         float maxHp = lastTarget.getMaxHealth();
@@ -207,19 +207,6 @@ public class TargetHud extends AbstractHudElement {
 
         Fonts.BOLD.draw(name, contentX, nameY, 5.5f,
                 new Color(255, 255, 255, (int) (255 * alpha)).getRGB());
-
-        float infoY = nameY + 10;
-        String hpInfo = "HP: " + hpStr;
-
-        float dist = 0;
-        if (mc.player != null && lastTarget != mc.player) {
-            dist = mc.player.distanceTo(lastTarget);
-        }
-        String distInfo = "Dist: " + String.format("%.0f", dist);
-        String infoText = hpInfo + " | " + distInfo;
-
-        Fonts.BOLD.draw(infoText, contentX, infoY, 5f,
-                new Color(215, 215, 215, (int) (255 * alpha)).getRGB());
 
         float targetHealth;
         if (isInvisible) {
@@ -243,7 +230,7 @@ public class TargetHud extends AbstractHudElement {
         absorptionAnimation = lerp(absorptionAnimation, targetAbsorption, deltaTime, 3f);
 
         float barX = contentX;
-        float barY = infoY + 12f;
+        float barY = nameY + 10f;
         float barWidth = getWidth() - (contentX - x) - 10;
         float barHeight = 4;
         float barRadius = 2;
@@ -299,5 +286,18 @@ public class TargetHud extends AbstractHudElement {
 
             Render2D.gradientRect(barX, barY, barWidth * absorptionPercent, barHeight, goldColors, barRadius);
         }
+
+        float infoY = barY + barHeight + 3f;
+        String hpInfo = "HP: " + hpStr;
+
+        float dist = 0;
+        if (mc.player != null && lastTarget != mc.player) {
+            dist = mc.player.distanceTo(lastTarget);
+        }
+        String distInfo = "Dist: " + String.format("%.0f", dist);
+        String infoText = hpInfo + " | " + distInfo;
+
+        Fonts.BOLD.draw(infoText, contentX, infoY, 5f,
+                new Color(215, 215, 215, (int) (255 * alpha)).getRGB());
     }
 }
