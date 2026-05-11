@@ -3,8 +3,6 @@ package rich.screens.hud;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.entity.LivingEntity;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 import rich.client.draggables.AbstractHudElement;
 import rich.modules.impl.combat.Aura;
 import rich.util.ColorUtil;
@@ -132,19 +130,17 @@ public class TargetHud extends AbstractHudElement {
 
         int entitySize = 24;
 
-        context.enableScissor(modelX1, modelY1, modelX2, modelY2);
+        float centerX = (modelX1 + modelX2) / 2f;
 
-        Quaternionf entityRotation = new Quaternionf().rotationY((float) Math.toRadians(195));
-        Quaternionf tilt = new Quaternionf().rotationX((float) Math.toRadians(-5));
+        context.enableScissor(modelX1, modelY1, modelX2, modelY2);
 
         InventoryScreen.drawEntity(
                 context,
                 modelX1, modelY1, modelX2, modelY2,
                 entitySize,
                 0.0625f,
-                new Vector3f(0, 0, 0),
-                entityRotation,
-                tilt,
+                centerX + 20,
+                (float) modelY1,
                 lastTarget
         );
 
