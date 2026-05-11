@@ -168,9 +168,9 @@ public class TargetHud extends AbstractHudElement {
         float startX = x + 46;
         float itemY = y + getHeight() - itemSize - 5;
 
-        context.getMatrices().push();
-        context.getMatrices().translate(startX, itemY, 0);
-        context.getMatrices().scale(itemScale, itemScale, 1f);
+        context.getMatrices().pushMatrix();
+        context.getMatrices().translate(startX, itemY);
+        context.getMatrices().scale(itemScale, itemScale);
 
         int drawX = 0;
         for (ItemStack stack : items) {
@@ -180,7 +180,7 @@ public class TargetHud extends AbstractHudElement {
             drawX += 16 + (int) (gap / itemScale);
         }
 
-        context.getMatrices().pop();
+        context.getMatrices().popMatrix();
     }
 
     private void drawContent(float x, float y, float alpha, float deltaTime) {
